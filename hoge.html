@@ -1,0 +1,57 @@
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <base target="_top">
+</head>
+<body>
+
+<script type="text/javascript" >
+  var d = %adasu()%;    //ここでadasu()の値を受け取りたい
+   document.writeln('<p>開始時刻 終了時刻　予定</p>');//このテキストボックス内に入力された値をGAS側で受け取りたい。
+   for(var i=0;i<3;i++){
+
+   document.writeln('<p><input type="time" value="00:00:00" name="pra'+ i +'"/>'+
+                    '<input type="time" value="00:00:00" name="prb'+ i +'"/>'+
+                    '<input type="text" value='+ d +' name="prc'+ i +'"/></p>');//このテキストボックス内に入力された値をGAS側で受け取りたい。
+
+  }
+
+  function sendGoogleAppsScript() {    
+    var startTimes = [];
+    var endTimes   = [];
+    var titles     = [];
+    var now   = new Date();
+    var year  = now.getFullYear();
+    var month = now.getMonth()+1; 
+    var day   = now.getDate();
+    var today =  year　+'/' + month + '/' + day;
+    for (var i = 0; i < 3; i++) {
+
+      var startTime = today +' '+ document.getElementsByName("pra" + i)[0].value;
+      var endTime   = today + ' ' + document.getElementsByName("prb" + i)[0].value;
+      var title     = document.getElementsByName("prc" + i)[0].value;
+      startTimes.push(startTime);
+      endTimes.push(endTime);
+      titles.push(title);
+      
+   /*  var now   = new Date();
+     var year  = now.getFullYear();
+     var month = now.getMonth(); 
+     var day   = now.getDate();
+     var today = year + month + day;
+  　　　  var calendar    =   CalendarApp.getDefaultCalendar();
+    　　　var title       =   element2.value;
+    　　　var startTime   =   today+' '+element.value;
+   　　　 var endTime     =   today+' '+element1.value;
+      */
+    
+    }
+    google.script.run.recieveFromHtml(startTimes,endTimes,titles);
+    //calendar.createEvent(title,startTime,endTime);
+  }
+</script>
+<br>
+<button type="submit" onclick="sendGoogleAppsScript()">送信</button>
+</body>
+</html>

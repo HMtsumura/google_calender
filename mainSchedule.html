@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <!-- <meta name="viewport" content="device-width"> -->
+    <title>スケジューラー</title>
+  </head>
+  <script src="https://code.jquery.com/jquery-3.4.1.slim.min.js" integrity="sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js" integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6" crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+  <body>
+   <div id="main"></div>
+   <table class="table table-bordered">
+           <tr name="scheduleHeader" id="scheduleHeader">
+               <th>日時</th> 
+               <th>開始時刻</th>
+               <th>終了時刻</th>
+               <th>予定</th>
+           </tr>
+    </table>
+    <a href="https://script.google.com/macros/s/AKfycbx73JzoUN_2qvX1Q5yq4pu39uf2bTsfp6oS1Lco4Ml5yPD7LOI/exec?p=registSchedule">予定登録</a><br>
+  </body>
+  <script>
+  window.onload = function(){
+      let test = document.getElementById("main");
+      test.insertAdjacentHTML('afterend','<button class="btn btn-primary" type="button" onclick="createScheduleTable()">test</button>');
+      //ここで値をカレンダーから取得する。
+      google.script.run.withSuccessHandler(function(data){
+      //dataは[[startTime,endTime,title],[startTime,endTime,title],[startTime,endTime,title],...]の多重配列
+      //予定を一つ一つ入れていくために、v=0の時、v=1の時,v＝２の時で追加するhtmlを変更する。
+        for(let i = data.length-1; i >= 0 ; i--){
+           let html = '<tr name="scheduleMain">';
+           for(let v = 0; v < data[i].length; v++){
+           　if(v == 0){
+               html += '<td><input name="date" type="date" max="2020-12-31" min="2018-01-01" value="'+ data[i][v] +'" id="date_'+ i +'"></td>';
+             }else if(v == 1){
+               html += '<td><input name="startTime" type="time" step="1800" value="'+data[i][v]+'" id="startTime_'+ i +'"></td>';
+             }else if(v == 2){
+               html += '<td><input name="endTime" type="time" step="1800" value="'+data[i][v]+'" id="endTime_'+ i +'"></td>';
+             }else{
+               html += '<td><input name="content" type="text" value="'+data[i][v]+'" id="content_'+ i +'""></td>';
+             }
+           } 
+           html += '</tr>';
+           let main = document.getElementById("scheduleHeader");
+           main.insertAdjacentHTML('afterend',html);
+        }
+      }).getSchedule(); 
+  
+  
+  }
+  function createScheduleTable(){
+      google.script.run.withSuccessHandler(function(data){
+      //dataは[[startTime,endTime,title],[startTime,endTime,title],[startTime,endTime,title],...]の多重配列
+      //予定を一つ一つ入れていくために、v=0の時、v=1の時,v＝２の時で追加するhtmlを変更する。
+        for(let i = data.length-1; i >= 0 ; i--){
+           let html = '<tr name="scheduleMain">';
+           for(let v = 0; v < data[i].length; v++){
+           　if(v == 0){
+               html += '<td><input name="date" type="date" max="2020-12-31" min="2018-01-01" value="'+ data[i][v] +'" id="date_'+ i +'"></td>';
+             }else if(v == 1){
+               html += '<td><input name="startTime" type="time" step="1800" value="'+data[i][v]+'" id="startTime_'+ i +'"></td>';
+             }else if(v == 2){
+               html += '<td><input name="endTime" type="time" step="1800" value="'+data[i][v]+'" id="endTime_'+ i +'"></td>';
+             }else{
+               html += '<td><input name="content" type="text" value="'+data[i][v]+'" id="content_'+ i +'""></td>';
+             }
+           } 
+           html += '</tr>';
+           let main = document.getElementById("scheduleHeader");
+           main.insertAdjacentHTML('afterend',html);
+        }
+      }).getSchedule(); 
+  }
+  </script>
+</html>
+
+

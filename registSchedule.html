@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <!-- <meta name="viewport" content="device-width"> -->
+    <title>スケジューラー</title>
+</head>
+<script src="https://code.jquery.com/jquery-3.4.1.slim.min.js" integrity="sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js" integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6" crossorigin="anonymous"></script>
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+<style>
+    h2{color: blue}
+</style>
+<body>
+    <h2>Scheduler</h2>
+    <table class="table table-bordered">
+           <tr name="scheduleHeader">
+               <th>日時</th> 
+               <th>開始時刻</th>
+               <th>終了時刻</th>
+               <th>予定</th>
+           </tr>
+           <tr name="scheduleMain">
+               <td><input name="date" type="date" max="2020-12-31" min="2018-01-01" value="2020-04-16" id="date_0"></td>
+               <td><input name="startTime" type="time" step="1800" value="09:00" id="startTime_0"></td>
+               <td><input name="endTime" type="time" step="1800" value="10:00" id="endTime_0"></td>
+               <td><input name="content" type="text" id="content_0"></td>
+               </tr>
+           <tr name="scheduleMain">
+               <td><input name="date" type="date" max="2020-12-31" min="2018-01-01" value="2020-04-16" id="date_1"></td>           
+               <td><input name="startTime" type="time" step="1800" value="10:00" id="startTime_1"></td>
+               <td><input name="endTime" type="time" step="1800" value="11:00" id="endTime_1"></td>
+               <td><input name="content" type="text" id="content_1"></td>
+           </tr>
+           <tr name="scheduleMain">
+               <td><input name="date" type="date" max="2020-12-31" min="2018-01-01" value="2020-04-16" id="date_2"></td>           
+               <td><input name="startTime" type="time" step="1800" value="11:00" id="startTime_2"></td>
+               <td><input name="endTime" type="time" step="1800" value="12:00" id="endTime_2"></td>
+               <td><input name="content" type="text" id="content_2"></td>
+           </tr>   
+    </table>
+
+    <p><button type="button" class="btn btn-primary btn-sm" onclick="addHtml()">追加</button>
+    <button type="button" class="btn btn-primary btn-sm" onclick="deleteHtml()">削除</button>
+    <button type="submit" class="btn btn-primary btn-sm" onclick="sendGoogleAppsScript()">登録</button>
+    <a href="https://script.google.com/macros/s/AKfycbx73JzoUN_2qvX1Q5yq4pu39uf2bTsfp6oS1Lco4Ml5yPD7LOI/exec">メイン</a>
+</body>
+<script type="text/javascript" >
+    //TODO
+    /*
+    　一つ前のendtimeをstartTimeにする
+    　終日ボタンを入れる。
+     24時間以降も
+     別のhtmlに遷移するようにする。
+    　入力しているカレンダーのデータを取得する。
+    　既に入力しているカレンダーの予定を更新・削除できるようにする。
+     
+    */
+window.onload = function () {
+    //今日の日時を表示
+    let ymd = getTodayDate();
+    //TODOここの値の入れ方もうちょっとスマートにしたい。
+    document.getElementById("date_0").value = ymd;
+    document.getElementById("date_1").value = ymd;
+    document.getElementById("date_2").value = ymd;
+}
+//0埋めを行う   
+function toDigits(num, digit){
+    num += ""
+    if (num.length < digit) {
+    num = "0" + num
+    }
+    return num
+}
+//実行時の年月日を取得する。
+function getTodayDate(){
+    let today = new Date();
+    let year = today.getFullYear();
+    let month = today.getMonth() + 1;
+    let day = today.getDate();
+    
+    let yyyy = toDigits(year, 4);
+    let mm = toDigits(month, 2);
+    let dd = toDigits(day, 2);
+    let ymd = yyyy + "-" + mm + "-" + dd;
+    return ymd;
+}
+//予定追加の最後の行のendTimeを取得する。
+function getStartTime(){
+    let endTimes = document.getElementsByName("endTime");
+    let lastEndTime = endTimes[endTimes.length-1].value;
+    let startTime = lastEndTime;
+    return startTime;
+}
+//startTimeの30分後の時間を取得する。
+function getEndTime(startTime){
+    let intHour = parseInt(startTime.split(":")[0]);
+    let intMinute = parseInt(startTime.split(":")[1])+30;
+    //intMinuteが60以上の場合は、時間を追加し、分をマイナスする。
+    if(intMinute>=60){
+        intHour +=1;
+        intMinute -=60; 
+    }
+    //intにしたことで1桁になっている時間・分をゼロ埋めする。
+    let hour = toDigits(intHour,2);
+    let minute = toDigits(intMinute,2); 
+    let endTime = hour + ":" + minute;
+    return endTime;
+}
+//予定行を追加する。
+function addHtml(){
+    let scheduleMains = document.getElementsByName("scheduleMain");
+    let lastMain = scheduleMains[scheduleMains.length-1];
+    let newMainId = scheduleMains.length;
+    let ymd = getTodayDate();
+    let startTime = getStartTime();
+    let endTime = getEndTime(startTime);
+    lastMain.insertAdjacentHTML('afterend', '<tr name="scheduleMain">'+
+                                                '<td><input name="date" type="date" max="2020-12-31" min="2018-01-01" value="'+ ymd +'" id="date_'+ newMainId +'"></td>'+
+                                                '<td><input name="startTime" type="time" step="1800" value="'+startTime+'" id="startTime_'+ newMainId +'"></td>'+
+                                                '<td><input name="endTime" type="time" step="1800" value="'+endTime+'" id="endTime_'+ newMainId +'"></td>'+
+                                                '<td><input name="content" type="text" id="content_'+ newMainId +'"></td>'+
+                                             '</tr>');   
+                                             
+}
+//予定追加の一番下の行を削除する。
+function deleteHtml(){
+     let scheduleMains = document.getElementsByName("scheduleMain");
+     let lastScheduleMain = scheduleMains[scheduleMains.length-1];
+     lastScheduleMain.parentNode.removeChild(lastScheduleMain);
+}
+//gsに追加する予定の情報を送信する。
+function sendGoogleAppsScript(){
+    let startTimes = [];
+    let endTimes   = [];
+    let titles     = [];
+    let scheduleLength = document.getElementsByName("scheduleMain");
+    for (let i = 0; i < scheduleLength.length; i++) {
+      let startTime = document.getElementById("date_" + i).value +' '+ document.getElementById("startTime_" + i).value;
+      let endTime   = document.getElementById("date_" + i).value + ' ' + document.getElementById("endTime_" + i).value;
+      let title     = document.getElementById("content_" + i).value;
+      startTimes.push(startTime);
+      endTimes.push(endTime);
+      titles.push(title);
+    }
+    google.script.run.recieveFromHtml(startTimes,endTimes,titles);
+    alert("予定を"+i+"件登録しました。");
+}
+</script>
+
+</html>
