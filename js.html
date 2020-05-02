@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+  </head>
+  <script src="https://cdn.jsdelivr.net/npm/vue@2.5.17/dist/vue.js"></script>
+  <script>  
+  var app = new Vue({
+    el: '#app',
+    data: {
+      message: 'Hello GAS!'
+    },
+    methods: {
+      changeMessage: function() {
+        this.message = 'Hello JavaScript!';
+      }
+    }
+  });
+  
+  var scheduleTable = new Vue({
+    el: '#scheduleTable',
+    data: {
+      date: '日時',
+      startTime: '開始時刻',
+      endTime: '終了時刻',
+      title: '予定'
+    }
+  
+  })
+  </script>
+  <body>
+
+  </body>
+</html>
+
+

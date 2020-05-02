@@ -1,79 +1,302 @@
 <!DOCTYPE html>
 <html>
-  <head>
+
+<head>
     <meta charset="UTF-8">
     <!-- <meta name="viewport" content="device-width"> -->
     <title>スケジューラー</title>
-  </head>
-  <script src="https://code.jquery.com/jquery-3.4.1.slim.min.js" integrity="sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n" crossorigin="anonymous"></script>
-  <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
-  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js" integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6" crossorigin="anonymous"></script>
-  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
-  <body>
-   <div id="main"></div>
-   <table class="table table-bordered">
-           <tr name="scheduleHeader" id="scheduleHeader">
-               <th>日時</th> 
-               <th>開始時刻</th>
-               <th>終了時刻</th>
-               <th>予定</th>
-           </tr>
-    </table>
-    <a href="https://script.google.com/macros/s/AKfycbx73JzoUN_2qvX1Q5yq4pu39uf2bTsfp6oS1Lco4Ml5yPD7LOI/exec?p=registSchedule">予定登録</a><br>
-  </body>
-  <script>
-  window.onload = function(){
-      let test = document.getElementById("main");
-      test.insertAdjacentHTML('afterend','<button class="btn btn-primary" type="button" onclick="createScheduleTable()">test</button>');
-      //ここで値をカレンダーから取得する。
-      google.script.run.withSuccessHandler(function(data){
-      //dataは[[startTime,endTime,title],[startTime,endTime,title],[startTime,endTime,title],...]の多重配列
-      //予定を一つ一つ入れていくために、v=0の時、v=1の時,v＝２の時で追加するhtmlを変更する。
-        for(let i = data.length-1; i >= 0 ; i--){
-           let html = '<tr name="scheduleMain">';
-           for(let v = 0; v < data[i].length; v++){
-           　if(v == 0){
-               html += '<td><input name="date" type="date" max="2020-12-31" min="2018-01-01" value="'+ data[i][v] +'" id="date_'+ i +'"></td>';
-             }else if(v == 1){
-               html += '<td><input name="startTime" type="time" step="1800" value="'+data[i][v]+'" id="startTime_'+ i +'"></td>';
-             }else if(v == 2){
-               html += '<td><input name="endTime" type="time" step="1800" value="'+data[i][v]+'" id="endTime_'+ i +'"></td>';
-             }else{
-               html += '<td><input name="content" type="text" value="'+data[i][v]+'" id="content_'+ i +'""></td>';
-             }
-           } 
-           html += '</tr>';
-           let main = document.getElementById("scheduleHeader");
-           main.insertAdjacentHTML('afterend',html);
+    <link href="https://use.fontawesome.com/releases/v5.6.1/css/all.css" rel="stylesheet">
+</head>
+<script src="https://code.jquery.com/jquery-3.4.1.slim.min.js"
+    integrity="sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n"
+    crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"
+    integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo"
+    crossorigin="anonymous"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js"
+    integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6"
+    crossorigin="anonymous"></script>
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css"
+    integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+<style>
+    td input {
+        border: none;
+    }
+</style>
+
+<body>
+    <div id="main">
+        <button class="btn btn-primary btn-sm" type="button" onclick="updateEvents()"><i
+                class="fas fa-sync-alt"></i></button>
+    </div>
+    <div class="mx-auto">
+        <table class="table table-hover">
+            <tr name="scheduleHeader" id="scheduleHeader">
+                <th>日時</th>
+                <th>開始時刻</th>
+                <th>終了時刻</th>
+                <th>予定</th>
+            </tr>
+        </table>
+    </div>
+</body>
+<script>
+    //画面呼び出し時に、既にカレンダーに登録されている予定を出力する
+    window.onload = this.createScheduleMain();
+    //gsに更新する予定の情報を送信する
+    function updateEvents() {
+        if (confirm("カレンダーを更新しますか？")) {
+            //更新用の要素定義
+            let updateStartTimes = [];
+            let updateEndTimes = [];
+            let updateTitles = [];
+            let updateEventIds = [];
+            //新規作成用の要素定義
+            let newStartTimes = [];
+            let newEndTimes = [];
+            let newTitles = [];
+            let newEventIds = [];
+            //削除用の要素定義
+            let deleteEventIds = [];
+
+            let schedule = document.getElementsByName("scheduleMain");
+            var count = 0;
+            for (count; count < schedule.length; count++) {
+                let startTime = document.getElementById("date_" + count).value + ' ' + document.getElementById("startTime_" + count).value;
+                let endTime = document.getElementById("date_" + count).value + ' ' + document.getElementById("endTime_" + count).value;
+                let title = document.getElementById("content_" + count).value;
+                let eventId = document.getElementById("eventId_" + count).value;
+                if (eventId == "new") {
+                    newStartTimes.push(startTime);
+                    newEndTimes.push(endTime);
+                    newTitles.push(title);
+                } else {
+                    //既存予定で削除ボタンが押されてる場合
+                    if (schedule[count].hidden == true) {
+                        deleteEventIds.push(eventId);
+                    } else {
+                        updateStartTimes.push(startTime);
+                        updateEndTimes.push(endTime);
+                        updateTitles.push(title);
+                        updateEventIds.push(eventId);
+                    }
+                }
+            }
+            google.script.run.deleteEvent(deleteEventIds);
+            google.script.run.createEvent(newStartTimes, newEndTimes, newTitles);
+            google.script.run.withSuccessHandler(function () {
+                //既存のshceduleMainを削除する
+                deleteSchedleMain();
+                //更新したスケジュールでscheduleMainを作り直す
+                createScheduleMain();
+                alert("予定を" + count + "件更新しました");
+            }).updateEvent(updateStartTimes, updateEndTimes, updateTitles, updateEventIds);
         }
-      }).getSchedule(); 
-  
-  
-  }
-  function createScheduleTable(){
-      google.script.run.withSuccessHandler(function(data){
-      //dataは[[startTime,endTime,title],[startTime,endTime,title],[startTime,endTime,title],...]の多重配列
-      //予定を一つ一つ入れていくために、v=0の時、v=1の時,v＝２の時で追加するhtmlを変更する。
-        for(let i = data.length-1; i >= 0 ; i--){
-           let html = '<tr name="scheduleMain">';
-           for(let v = 0; v < data[i].length; v++){
-           　if(v == 0){
-               html += '<td><input name="date" type="date" max="2020-12-31" min="2018-01-01" value="'+ data[i][v] +'" id="date_'+ i +'"></td>';
-             }else if(v == 1){
-               html += '<td><input name="startTime" type="time" step="1800" value="'+data[i][v]+'" id="startTime_'+ i +'"></td>';
-             }else if(v == 2){
-               html += '<td><input name="endTime" type="time" step="1800" value="'+data[i][v]+'" id="endTime_'+ i +'"></td>';
-             }else{
-               html += '<td><input name="content" type="text" value="'+data[i][v]+'" id="content_'+ i +'""></td>';
-             }
-           } 
-           html += '</tr>';
-           let main = document.getElementById("scheduleHeader");
-           main.insertAdjacentHTML('afterend',html);
+    }
+    //0埋めを行う   
+    function toDigits(num, digit) {
+        num += ""
+        if (num.length < digit) {
+            num = "0" + num
         }
-      }).getSchedule(); 
-  }
-  </script>
+        return num
+    }
+    //実行時の年月日を取得する
+    function getTodayDate() {
+        let today = new Date();
+        let year = today.getFullYear();
+        let month = today.getMonth() + 1;
+        let day = today.getDate();
+        //取得した年月日のゼロ埋めを行う
+        let yyyy = toDigits(year, 4);
+        let mm = toDigits(month, 2);
+        let dd = toDigits(day, 2);
+        let ymd = yyyy + "-" + mm + "-" + dd;
+        return ymd;
+    }
+    //追加ボタンを押した行のendTimeをstartTimeに設定する
+    function getStartTime(rowId) {
+        let endTime = document.getElementById("endTime_" + rowId).value;
+        let startTime = endTime;
+        return startTime;
+    }
+    //startTimeの30分後の時間を取得する
+    function getEndTime(startTime) {
+        let intHour = parseInt(startTime.split(":")[0]);
+        let intMinute = parseInt(startTime.split(":")[1]) + 30;
+        //intMinuteが60以上の場合は、時間を追加し、分をマイナスする
+        if (intMinute >= 60) {
+            intHour += 1;
+            intMinute -= 60;
+        }
+        //intにしたことで1桁になっている時間・分をゼロ埋めする
+        let hour = toDigits(intHour, 2);
+        let minute = toDigits(intMinute, 2);
+        let endTime = hour + ":" + minute;
+        return endTime;
+    }
+　  //予定行を作成し、scheduleHeaderの下に追加する
+    function createScheduleMain() {
+        //ここで値をカレンダーから取得する
+        google.script.run.withSuccessHandler(function (data) {
+            //予定が一つもなかった場合は、新しい予定行を1行追加する
+            if (isEmpty(data)) {
+                let ymd = getTodayDate();
+                let time = new Date();
+                let strHour = (time.getHours() + 1).toString();
+                let startTime = strHour + ':00';
+                let endTime = strHour + ':30';
+                //addHtmlをスコープを一個上の階層で定義すると、undefinedが表示されてしまうから、ここで定義する
+                let addHtml = '<tr name="scheduleMain" id="scheduleMain_0">' +
+                    '<td><input name="date" type="date" max="2020-12-31" min="2018-01-01" value="' + ymd + '" id="date_0"></td>' +
+                    '<td><input name="startTime" type="time" step="1800" value="' + startTime + '" id="startTime_0"></td>' +
+                    '<td><input name="endTime" type="time" step="1800" value="' + endTime + '" id="endTime_0"></td>' +
+                    '<td><input name="content" type="text" value="" id="content_0"></td>' +
+                    '<td><button name="addButton" class="btn btn-primary btn-sm" type="button" id="addButton_0" onclick="addRow(this)"><i class="fas fa-plus"></i></button></td>' +
+                    '<td><button name="deleteButton" class="btn btn-primary btn-sm" id="deleteButton_0" type="button" value="new" onclick="hideRow(this.id)"><i class="fas fa-minus"></i></button></td>' +
+                    '<td hidden><input name="eventId" type="text" value="new" id="eventId_0"></td>' +
+                    '</tr>';
+                let main = document.getElementById("scheduleHeader");
+                main.insertAdjacentHTML('afterend', addHtml);
+            } else {
+                let addHtml = "";
+                //dataは[[startTime,endTime,title],[startTime,endTime,title],[startTime,endTime,title,Id],...]の多重配列
+                //予定を一つ一つ入れていくために、v=0の時、v=1の時,v＝２の時で追加するhtmlを変更する
+                for (let i = 0; i < data.length; i++) {
+                    addHtml += '<tr name="scheduleMain" id="scheduleMain_' + i + '">';
+                    for (let v = 0; v < data[i].length; v++) {
+                        if (v == 0) {
+                            addHtml += '<td><input name="date" type="date" max="2020-12-31" min="2018-01-01" value="' + data[i][v] + '" id="date_' + i + '"></td>';
+                        } else if (v == 1) {
+                            addHtml += '<td><input name="startTime" type="time" step="1800" value="' + data[i][v] + '" id="startTime_' + i + '"></td>';
+                        } else if (v == 2) {
+                            addHtml += '<td><input name="endTime" type="time" step="1800" value="' + data[i][v] + '" id="endTime_' + i + '"></td>';
+                        } else if (v == 3) {
+                            addHtml += '<td><input name="content" type="text" value="' + data[i][v] + '" id="content_' + i + '""></td>';
+                        } else {
+                            addHtml += '<td><button name="addButton" class="btn btn-primary btn-sm" type="button" id="addButton_' + i + '" onclick="addRow(this)"><i class="fas fa-plus"></i></button></td>' +
+                                '<td><button name="deleteButton" class="btn btn-primary btn-sm" id="deleteButton_' + i + '" type="button" value="' + data[i][v] + '" onclick="hideRow(this.id)"><i class="fas fa-minus"></i></button></td>' +
+                                '<td hidden><input name="eventId" type="text" value="' + data[i][v] + '" id="eventId_' + i + '""></td>';
+                        }
+                    }
+                    addHtml += '</tr>';
+                }
+                let main = document.getElementById("scheduleHeader");
+                main.insertAdjacentHTML('afterend', addHtml);
+            }
+        }).getSchedule();
+    }
+    //リストの中身が空か確認する
+    function isEmpty(val) {
+        if (!val) {//null or undefined or ''(空文字) or 0 or false
+            if (val !== 0 && val !== false) {
+                return true;
+            }
+        } else if (typeof val == "object") {//array or object
+            return Object.keys(val).length === 0;
+        }
+        return false;//値は空ではない
+    }
+    //追加を選んだ下に新しく行を追加する
+    function addRow(addButton) {
+        //行の追加後にIdの書き換えを行うが、その前に暫定的に番号を振る
+        let newTableNumber = parseInt(addButton.id.split('_')[1]) + 1;
+        /*TODO追加する行の開始日時、終了日時などの値を考える入るように設定する
+              追加したら、その下の行はその予定に併せて時間を変更するようにしないとだめ？
+        */
+        //addを押した下に終了時刻を開始時刻にして、30分後を終了時刻にする
+        let rowId = addButton.id.split('_')[1];
+        let ymd = getTodayDate();
+        let startTime = getStartTime(rowId);
+        let endTime = getEndTime(startTime);
+        let scheduleMain = document.getElementById(addButton.id).parentNode.parentNode;
+        scheduleMain.insertAdjacentHTML('afterend', '<tr name="scheduleMain" id="scheduleMain_' + newTableNumber + '">' +
+            '<td><input name="date" type="date" max="2020-12-31" min="2018-01-01" value="' + ymd + '" id="date_' + newTableNumber + '"></td>' +
+            '<td><input name="startTime" type="time" step="1800" value="' + startTime + '" id="startTime_' + newTableNumber + '"></td>' +
+            '<td><input name="endTime" type="time" step="1800" value="' + endTime + '" id="endTime_' + newTableNumber + '"></td>' +
+            '<td><input name="content" type="text" value="" id="content_' + newTableNumber + '""></td>' +
+            '<td><button name="addButton" class="btn btn-primary btn-sm" type="button" id="addButton_' + newTableNumber + '" onclick="addRow(this)"><i class="fas fa-plus"></i></button></td>' +
+            '<td><button name="deleteButton" class="btn btn-primary btn-sm" id="deleteButton_' + newTableNumber + '" type="button" value="" onclick="deleteRow(this.id)"><i class="fas fa-minus"></i></button></td>' +
+            '<td hidden><input name="eventId" type="hidden" value="new" id="eventId_' + newTableNumber + '""></td>');
+        //Idを新しいものに修正する                                           
+        chandeId();
+        //TODO追加した下の行にあるstartTimeとendTimeを整形する？
+        //->一旦必要ない
+        //adjustTimes(newTableNumber);
+
+    }
+    //既存予定の削除用機能
+    //削除を選んだ行のHTMLがhiddenとなる
+    function hideRow(deleteId) {
+        let tableNumber = deleteId.split('_')[1];
+        //scheduleMainの要素を取得する
+        let scheduleMain = document.getElementById(deleteId).parentNode.parentNode;
+        scheduleMain.hidden = true;
+    }
+    //新規予定の削除用機能
+    //削除を選んだ行のHTMLが削除される、他の行のIdを振り直す
+    function deleteRow(deleteId) {
+        let tableNumber = deleteId.split('_')[1];
+        //scheduleMainの要素を取得する
+        let scheduleMain = document.getElementById(deleteId).parentNode.parentNode;
+        let ancient = scheduleMain.parentNode;
+        //何もない要素を取得
+        let clone = scheduleMain.cloneNode(false);
+        //scheduleMainの要素を消す
+        ancient.removeChild(scheduleMain);
+        //Idを新しいものに修正する
+        chandeId();
+    }
+    //要素が追加されたとき、削除された時Idを変更する
+    function chandeId() {
+        let scheduleMains = document.getElementsByName('scheduleMain');
+        let dates = document.getElementsByName('date');
+        let startTimes = document.getElementsByName('startTime');
+        let endTimes = document.getElementsByName('endTime');
+        let contents = document.getElementsByName('content');
+        let eventIds = document.getElementsByName('eventId');
+        let addButtons = document.getElementsByName('addButton');
+        let deleteButtons = document.getElementsByName('deleteButton');
+        for (var row = 0; row < dates.length; row++) {
+            scheduleMains[row].setAttribute('id', 'scheduleMain_' + row);
+            dates[row].setAttribute('id', 'date_' + row);
+            startTimes[row].setAttribute('id', 'startTime_' + row);
+            endTimes[row].setAttribute('id', 'endTime_' + row);
+            contents[row].setAttribute('id', 'content_' + row);
+            eventIds[row].setAttribute('id', 'eventId_' + row);
+            addButtons[row].setAttribute('id', 'addButton_' + row);
+            deleteButtons[row].setAttribute('id', 'deleteButton_' + row);
+        }
+    }
+    //行が追加されたときに、追加された行以降の行の時間を調整する
+    //追加した予定の下が時間が隣接してない場合はどうするのか？
+    function adjustTimes(rowId) {
+        //idを引数にして取得する
+        let intRowId = parseInt(rowId);
+        let rowLength = document.getElementsByName('scheduleMain').length;
+        for (intRowId; intRowId < rowLength; intRowId++) {
+            let nextRowNum = intRowId + 1;
+            console.log(nextRowNum);
+            //一個先のstartTimeのvalueに現在のendTimeのvalueに入れる
+            //一個先のendTimeのvalueには、一個先のendTimeとstartTimeの差をstartTimeに足した物を入れる
+            let endTime = document.getElementById('endTime_' + intRowId).value;
+            console.log(endTime);
+            //document.getElementById('startTime_'+nextRowNum).value = endTime;
+        }
+    }
+    //更新を押した後にテーブルを新規のテーブルにするために、既存のテーブルを削除する
+    function deleteSchedleMain() {
+        //行の数を取得する
+        let rowLength = document.getElementsByName('scheduleMain').length;
+        for (let count = 0; count < rowLength; count++) {
+            let scheduleMain = document.getElementById('scheduleMain_' + count);
+            let ancient = scheduleMain.parentNode;
+            //何もない要素を取得
+            let clone = scheduleMain.cloneNode(false);
+            //scheduleMainの要素を消す
+            ancient.removeChild(scheduleMain);
+        }
+    }
+</script>
+
 </html>
-
-
