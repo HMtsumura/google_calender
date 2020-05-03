@@ -6,19 +6,12 @@ function doGet(e) {
   } else if (page == "regist") {
     return HtmlService.createTemplateFromFile('registSchedule').evaluate().setSandboxMode(HtmlService.SandboxMode.IFRAME);
   }
-  /*var filterparam = e.parameter["p"];
-  var html;
-  
-  switch(filterparam){
-    case "mainSchedule":
-      var html = HtmlService.createTemplateFromFile('mainSchedule').evaluate().setSandboxMode(HtmlService.SandboxMode.IFRAME);
-      break;
-    case "registSchedule":
-      var html = HtmlService.createTemplateFromFile('registSchedule').evaluate().setSandboxMode(HtmlService.SandboxMode.IFRAME);
-      break;
-  }
-  return html;*/
+  //QUnit.urlParams( e.parameter );
+  //QUnit.config({ title: "Unit tests for my project" });
+  //QUnit.load( myTests );
+  //return QUnit.getHtml();
 }
+//QUnit.helpers(this);
 
 function main() {
   var app = SpreadsheetApp;
@@ -124,5 +117,9 @@ function deleteEvent(eventIds) {
     event.deleteEvent();
   }
   Browser.msgBox("予定を" + i + "件削除しました。");
-
 }
+
+function test(){
+  Logger.log('test');
+}
+

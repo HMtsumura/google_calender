@@ -26,23 +26,95 @@
 
 <body>
     <div id="main">
+        <schedule-header v-for="item in headerItems"></schedule-header>
         <button class="btn btn-primary btn-sm" type="button" onclick="updateEvents()"><i
                 class="fas fa-sync-alt"></i></button>
     </div>
-    <div class="mx-auto">
-        <table class="table table-hover">
-            <tr name="scheduleHeader" id="scheduleHeader">
-                <th>日時</th>
-                <th>開始時刻</th>
-                <th>終了時刻</th>
-                <th>予定</th>
+    <!--
+               TODO
+               vueへの書き換え。どういう単位で分けるのが正解？tableのmainのところ書き方わからん。
+                レイアウトをレスポンシブにする。
+                単体テストのテストコード書きたい。htmlにあるscriptって動かせるの？クラスの定義をしてないからテストできない？
+            -->
+    <div>
+        <table class="table table-responsive-sm table-hover">
+            <tr class="table-primary" name="scheduleHeader" id="scheduleHeader">
+                <th v-for="headerItem in headerItems">{{headerItem}}</th>
             </tr>
+            <div id="scheduleMain">
+            </div>
         </table>
     </div>
 </body>
+<script src="https://cdn.jsdelivr.net/npm/vue@2.5.17/dist/vue.js"></script>
+<script>
+    Vue.config.devtools = true;
+    var scheduleHeader = new Vue({
+        el: '#scheduleHeader',
+        data: {
+            headerItems: ['日時', '開始時刻', '終了時刻', '予定', '', '']
+        }
+    });
+    var scheduleMain = new Vue({
+        el: '#scheduleMain',
+        date: {
+            rowNumber: 0,
+        },
+        created: function () {
+            google.script.run.withSuccessHandler(function (data) {
+                //予定が一つもなかった場合は、新しい予定行を1行追加する
+                if (isEmpty(data)) {
+                    let ymd = getTodayDate();
+                    let time = new Date();
+                    let strHour = (time.getHours() + 1).toString();
+                    let startTime = strHour + ':00';
+                    let endTime = strHour + ':30';
+                    //addHtmlをスコープを一個上の階層で定義すると、undefinedが表示されてしまうから、ここで定義する
+                    let addHtml = '<tr name="scheduleMain" id="scheduleMain_0">' +
+                        '<td><input name="date" type="date" max="2020-12-31" min="2018-01-01" value="' + ymd + '" id="date_0"></td>' +
+                        '<td><input name="startTime" type="time" step="1800" value="' + startTime + '" id="startTime_0"></td>' +
+                        '<td><input name="endTime" type="time" step="1800" value="' + endTime + '" id="endTime_0"></td>' +
+                        '<td><input name="content" type="text" value="" id="content_0"></td>' +
+                        '<td><button name="addButton" class="btn btn-primary btn-sm" type="button" id="addButton_0" onclick="addRow(this)"><i class="fas fa-plus"></i></button></td>' +
+                        '<td><button name="deleteButton" class="btn btn-primary btn-sm" id="deleteButton_0" type="button" value="new" onclick="hideRow(this.id)"><i class="fas fa-minus"></i></button></td>' +
+                        '<td hidden><input name="eventId" type="text" value="new" id="eventId_0"></td>' +
+                        '</tr>';
+                    let main = document.getElementById("scheduleHeader");
+                    main.insertAdjacentHTML('afterend', addHtml);
+                } else {
+                    let addHtml = "";
+                    //dataは[[startTime,endTime,title],[startTime,endTime,title],[startTime,endTime,title,Id],...]の多重配列
+                    //予定を一つ一つ入れていくために、v=0の時、v=1の時,v＝２の時で追加するhtmlを変更する
+                    for (let i = 0; i < data.length; i++) {
+                        addHtml += '<tr name="scheduleMain" id="scheduleMain_' + i + '">';
+                        for (let v = 0; v < data[i].length; v++) {
+                            if (v == 0) {
+                                addHtml += '<td><input name="date" type="date" max="2020-12-31" min="2018-01-01" value="' + data[i][v] + '" id="date_' + i + '"></td>';
+                            } else if (v == 1) {
+                                addHtml += '<td><input name="startTime" type="time" step="1800" value="' + data[i][v] + '" id="startTime_' + i + '"></td>';
+                            } else if (v == 2) {
+                                addHtml += '<td><input name="endTime" type="time" step="1800" value="' + data[i][v] + '" id="endTime_' + i + '"></td>';
+                            } else if (v == 3) {
+                                addHtml += '<td><input name="content" type="text" value="' + data[i][v] + '" id="content_' + i + '""></td>';
+                            } else {
+                                addHtml += '<td><button name="addButton" class="btn btn-primary btn-sm" type="button" id="addButton_' + i + '" onclick="addRow(this)"><i class="fas fa-plus"></i></button></td>' +
+                                    '<td><button name="deleteButton" class="btn btn-primary btn-sm" id="deleteButton_' + i + '" type="button" value="' + data[i][v] + '" onclick="hideRow(this.id)"><i class="fas fa-minus"></i></button></td>' +
+                                    '<td hidden><input name="eventId" type="text" value="' + data[i][v] + '" id="eventId_' + i + '""></td>';
+                            }
+                        }
+                        addHtml += '</tr>';
+                    }
+                    let main = document.getElementById("scheduleHeader");
+                    main.insertAdjacentHTML('afterend', addHtml);
+                }
+            }).getSchedule();
+        }
+    });
+
+</script>
 <script>
     //画面呼び出し時に、既にカレンダーに登録されている予定を出力する
-    window.onload = this.createScheduleMain();
+    //window.onload = this.createScheduleMain();
     //gsに更新する予定の情報を送信する
     function updateEvents() {
         if (confirm("カレンダーを更新しますか？")) {
@@ -135,7 +207,7 @@
         let endTime = hour + ":" + minute;
         return endTime;
     }
-　  //予定行を作成し、scheduleHeaderの下に追加する
+    //予定行を作成し、scheduleHeaderの下に追加する
     function createScheduleMain() {
         //ここで値をカレンダーから取得する
         google.script.run.withSuccessHandler(function (data) {
