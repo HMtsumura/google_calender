@@ -26,9 +26,7 @@
 
 <body>
     <div id="main">
-        <schedule-header v-for="item in headerItems"></schedule-header>
-        <button class="btn btn-primary btn-sm" type="button" onclick="updateEvents()"><i
-                class="fas fa-sync-alt"></i></button>
+
     </div>
     <!--
                TODO
@@ -36,81 +34,182 @@
                 レイアウトをレスポンシブにする。
                 単体テストのテストコード書きたい。htmlにあるscriptって動かせるの？クラスの定義をしてないからテストできない？
             -->
-    <div>
+    <div id="table">
+        <button class="btn btn-primary btn-sm" type="button" v-on:click="updateEvents"><i
+                class="fas fa-sync-alt"></i></button>
         <table class="table table-responsive-sm table-hover">
             <tr class="table-primary" name="scheduleHeader" id="scheduleHeader">
                 <th v-for="headerItem in headerItems">{{headerItem}}</th>
             </tr>
-            <div id="scheduleMain">
-            </div>
+            <tr v-for="(item, index) in list" v-bind:key="item.id" v-if="!item.deleted">
+                <td><input name="date" type="date" max="2020-12-31" min="2018-01-01" v-model="item.date"
+                        v-bind:id="'date_'+index"></td>
+                <td><input name="startTime" type="time" step="1800" v-model="item.startTime"
+                        v-bind:id="'startTime_'+index"></td>
+                <td><input name="endTime" type="time" step="1800" v-model="item.endTime" v-bind:id="'endTime_'+index">
+                </td>
+                <td><input name="title" type="text" v-model="item.title" v-bind:id="'title_'+index"></td>
+                <td><button class="btn btn-primary" v-on:click=addRow(index)>追加</button></td>
+                <td><button class="btn btn-primary" v-on:click=deleteRow(index)>削除</button></td>
+            </tr>
         </table>
     </div>
 </body>
 <script src="https://cdn.jsdelivr.net/npm/vue@2.5.17/dist/vue.js"></script>
 <script>
+    /*TODO
+      削除した後に取り消し機能を作成する
+      createdの時と、更新の時のテーブル作成のロジックが重複してるからどこかにまとめたい
+      vueの外で書いてるscriptの部分はこのまま放って置いていいのか？
+    */
     Vue.config.devtools = true;
     var scheduleHeader = new Vue({
-        el: '#scheduleHeader',
+        el: '#table',
         data: {
-            headerItems: ['日時', '開始時刻', '終了時刻', '予定', '', '']
-        }
-    });
-    var scheduleMain = new Vue({
-        el: '#scheduleMain',
-        date: {
-            rowNumber: 0,
+            headerItems: ['日時', '開始時刻', '終了時刻', '予定', '', ''],
+            //行のデータ用:[{date,startTime,endTime,title,eventId,deleted}]
+            list: []
         },
-        created: function () {
-            google.script.run.withSuccessHandler(function (data) {
-                //予定が一つもなかった場合は、新しい予定行を1行追加する
-                if (isEmpty(data)) {
-                    let ymd = getTodayDate();
-                    let time = new Date();
-                    let strHour = (time.getHours() + 1).toString();
-                    let startTime = strHour + ':00';
-                    let endTime = strHour + ':30';
-                    //addHtmlをスコープを一個上の階層で定義すると、undefinedが表示されてしまうから、ここで定義する
-                    let addHtml = '<tr name="scheduleMain" id="scheduleMain_0">' +
-                        '<td><input name="date" type="date" max="2020-12-31" min="2018-01-01" value="' + ymd + '" id="date_0"></td>' +
-                        '<td><input name="startTime" type="time" step="1800" value="' + startTime + '" id="startTime_0"></td>' +
-                        '<td><input name="endTime" type="time" step="1800" value="' + endTime + '" id="endTime_0"></td>' +
-                        '<td><input name="content" type="text" value="" id="content_0"></td>' +
-                        '<td><button name="addButton" class="btn btn-primary btn-sm" type="button" id="addButton_0" onclick="addRow(this)"><i class="fas fa-plus"></i></button></td>' +
-                        '<td><button name="deleteButton" class="btn btn-primary btn-sm" id="deleteButton_0" type="button" value="new" onclick="hideRow(this.id)"><i class="fas fa-minus"></i></button></td>' +
-                        '<td hidden><input name="eventId" type="text" value="new" id="eventId_0"></td>' +
-                        '</tr>';
-                    let main = document.getElementById("scheduleHeader");
-                    main.insertAdjacentHTML('afterend', addHtml);
+        methods: {
+            //行を追加する
+            addRow: function (index) {
+                let today = new Date()
+                let year = today.getFullYear()
+                let month = toDigits(today.getMonth() + 1, 2)
+                let day = toDigits(today.getDate(), 2)
+                //追加するときの開始時間と終了時間を計算する。
+                let rowInfo = {
+                    date: year + '-' + month + '-' + day,
+                    startTime: this.list[index].endTime,
+                    endTime: getEndTime(this.list[index].endTime),
+                    title: '',
+                    eventId: 'new',
+                    deleted: false
+                }
+                //splice使って指定の場所にinsert
+                this.list.splice(index + 1, 0, rowInfo)
+            },
+            //eventIdがnewの場合行を削除する,それ以外の場合はdeletedをtrueにして見えなくする
+            deleteRow: function (index) {
+                if (this.list[index].eventId == 'new') {
+                    this.list.splice(index, 1)
                 } else {
-                    let addHtml = "";
-                    //dataは[[startTime,endTime,title],[startTime,endTime,title],[startTime,endTime,title,Id],...]の多重配列
-                    //予定を一つ一つ入れていくために、v=0の時、v=1の時,v＝２の時で追加するhtmlを変更する
-                    for (let i = 0; i < data.length; i++) {
-                        addHtml += '<tr name="scheduleMain" id="scheduleMain_' + i + '">';
-                        for (let v = 0; v < data[i].length; v++) {
-                            if (v == 0) {
-                                addHtml += '<td><input name="date" type="date" max="2020-12-31" min="2018-01-01" value="' + data[i][v] + '" id="date_' + i + '"></td>';
-                            } else if (v == 1) {
-                                addHtml += '<td><input name="startTime" type="time" step="1800" value="' + data[i][v] + '" id="startTime_' + i + '"></td>';
-                            } else if (v == 2) {
-                                addHtml += '<td><input name="endTime" type="time" step="1800" value="' + data[i][v] + '" id="endTime_' + i + '"></td>';
-                            } else if (v == 3) {
-                                addHtml += '<td><input name="content" type="text" value="' + data[i][v] + '" id="content_' + i + '""></td>';
+                    this.list[index].deleted = true
+                }
+            },
+            //予定を更新する
+            //更新に必要なもの:updateStartTimes, updateEndTimes, updateTitles, updateEventIds
+            //削除に必要なもの:削除するイベントId
+            //新規作成に必要なもの:newStartTimes, newEndTimes, newTitles
+            updateEvents: function () {
+                if (confirm("カレンダーを更新しますか？")) {
+                    let newEventInfos = [];
+                    let deleteEventIds = [];
+                    let updateEventInfos = [];
+
+                    for (let row = 0; row < this.list.length; row++) {
+                        //eventInfoに必要な値を定義
+                        const startTime = this.list[row].date + ' ' + this.list[row].startTime;
+                        const endTime = this.list[row].date + ' ' + this.list[row].endTime;
+                        const title = this.list[row].title;
+                        const eventId = this.list[row].eventId;
+                        //新しく予定を追加した場合
+                        if (this.list[row].eventId == 'new') {
+                            let eventInfo = {
+                                startTime: startTime,
+                                endTime: endTime,
+                                title: title,
+                            }
+                            newEventInfos.push(eventInfo);
+                        }
+                        //更新か削除した場合
+                        //deletedがtrueの場合は削除、falseの場合は更新
+                        else {
+                            if (this.list[row].deleted) {
+                                deleteEventIds.push(this.list[row].eventId)
                             } else {
-                                addHtml += '<td><button name="addButton" class="btn btn-primary btn-sm" type="button" id="addButton_' + i + '" onclick="addRow(this)"><i class="fas fa-plus"></i></button></td>' +
-                                    '<td><button name="deleteButton" class="btn btn-primary btn-sm" id="deleteButton_' + i + '" type="button" value="' + data[i][v] + '" onclick="hideRow(this.id)"><i class="fas fa-minus"></i></button></td>' +
-                                    '<td hidden><input name="eventId" type="text" value="' + data[i][v] + '" id="eventId_' + i + '""></td>';
+                                let eventInfo = {
+                                    startTime: startTime,
+                                    endTime: endTime,
+                                    title: title,
+                                    eventId: eventId
+                                }
+                                updateEventInfos.push(eventInfo)
                             }
                         }
-                        addHtml += '</tr>';
                     }
-                    let main = document.getElementById("scheduleHeader");
-                    main.insertAdjacentHTML('afterend', addHtml);
+                    //新しくイベントを追加する。
+                    google.script.run.createEvent(newEventInfos);
+                    //登録されているイベントを削除する
+                    google.script.run.deleteEvent(deleteEventIds);
+                    //登録されているイベントを更新する
+                    google.script.run.withSuccessHandler(function () {
+                        google.script.run.withSuccessHandler(function (data) {
+                            //スケジュールの行を初期化
+                            scheduleHeader.list = [];
+                            if (isEmpty(data)) {
+                                let today = new Date()
+                                let year = today.getFullYear()
+                                let month = toDigits(today.getMonth() + 1, 2)
+                                let day = toDigits(today.getDate(), 2)
+                                let strHour = (today.getHours() + 1).toString()
+                                let startTime = strHour + ':00'
+                                let endTime = strHour + ':30'
+                                //追加するときの開始時間と終了時間を計算する。
+                                let rowInfo = {
+                                    date: year + '-' + month + '-' + day,
+                                    startTime: startTime,
+                                    endTime: endTime,
+                                    title: '',
+                                    eventId: 'new',
+                                    deleted: false
+                                }
+                                scheduleHeader.list.push(rowInfo)
+                            } else {
+                                for (let count = 0; count < data.length; count++) {
+                                    console.log(data[count])
+                                    data[count].deleted = false;
+                                    //新たに取得してきたスケジュールを出力
+                                    scheduleHeader.list.push(data[count]);
+                                }
+                            }
+                            alert('新規:' + newEventInfos.length + '更新:' + updateEventInfos.length + '削除:' + deleteEventIds.length)
+                        }).getSchedule()
+                    }).updateEvent(updateEventInfos);
                 }
-            }).getSchedule();
+            }
+        },
+        //画面出力時に既に登録されているスケジュールで行を作成する
+        //スケジュールがまだ登録されてなかった場合は、listに一行分データを追加する。
+        created: function () {
+            google.script.run.withSuccessHandler(function (data) {
+                if (isEmpty(data)) {
+                    let today = new Date()
+                    let year = today.getFullYear()
+                    let month = toDigits(today.getMonth() + 1, 2)
+                    let day = toDigits(today.getDate(), 2)
+                    let strHour = (today.getHours() + 1).toString()
+                    let startTime = strHour + ':00'
+                    let endTime = strHour + ':30'
+                    //追加するときの開始時間と終了時間を計算する。
+                    let rowInfo = {
+                        date: year + '-' + month + '-' + day,
+                        startTime: startTime,
+                        endTime: endTime,
+                        title: '',
+                        eventId: 'new',
+                        deleted: false
+                    }
+                    scheduleHeader.list.push(rowInfo)
+                } else {
+                    for (let count = 0; count < data.length; count++) {
+                        data[count].deleted = false;
+                        scheduleHeader.list.push(data[count])
+                    }
+                }
+            }).getSchedule()
         }
     });
-
 </script>
 <script>
     //画面呼び出し時に、既にカレンダーに登録されている予定を出力する

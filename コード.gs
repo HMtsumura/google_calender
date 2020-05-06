@@ -58,13 +58,22 @@ function getSchedule() {
     let eventInfo = [];
     let eventId = events[i].getId();
     eventId = eventId.split('@')[0];
+    let rowInfo = {
+      date: startDate,
+      startTime: startTime,
+      endTime: endTime,
+      title: title,
+      eventId: eventId
+    }
     Logger.log(eventId);
-    eventInfo.push(startDate);
+    /*eventInfo.push(startDate);
     eventInfo.push(startTime);
     eventInfo.push(endTime);
     eventInfo.push(title);
     eventInfo.push(eventId);
     eventInfos.push(eventInfo);
+    */
+    eventInfos.push(rowInfo)
   }
   return eventInfos;
 }
@@ -77,7 +86,18 @@ function timeFormatter(date) {
   return Utilities.formatDate(date, 'JST', 'HH:mm');
 }
 //イベント作成機能
-function createEvent(startTimes, endTimes, titles) {
+function createEvent(newEventInfos){
+  for(var count = 0; count < newEventInfos.length; count++){
+    let calendar = CalendarApp.getDefaultCalendar();
+    let title = newEventInfos[count].title;
+    let startTime = new Date(newEventInfos[count].startTime);
+    let endTime = new Date(newEventInfos[count].endTime);
+    calendar.createEvent(title, startTime, endTime);
+  }
+    Logger.log("予定を" + count + "件登録しました。");
+}
+
+/*function createEvent(startTimes, endTimes, titles) {
   for (var i = 0; i < startTimes.length; i++) {
     let calendar = CalendarApp.getDefaultCalendar();
     let title = titles[i];
@@ -90,8 +110,9 @@ function createEvent(startTimes, endTimes, titles) {
   }
   Logger.log("予定を" + i + "件登録しました。");
 }
+*/
 //イベント更新機能
-function updateEvent(startTimes, endTimes, titles, eventIds) {
+function updateEvent(updateEventInfos) {
   let date = new Date();
   //既にカレンダーに入ってるその日分の予定を取得
   let events = CalendarApp.getEventsForDay(date);
@@ -99,14 +120,14 @@ function updateEvent(startTimes, endTimes, titles, eventIds) {
   let strCalendarID = CalendarApp.getId();
   Logger.log(strCalendarID);
   //画面の更新に関係してる予定分だけfor
-  for (var i = 0; i < startTimes.length; i++) {
-    let event = Calendar.Events.get(strCalendarID, eventIds[i]);
-    event.summary = titles[i];
-    let formattedStartDate = Utilities.formatDate(new Date(startTimes[i]), "JST", "yyyy-MM-dd'T'HH:mm:ssZ");
-    let formattedEndDate = Utilities.formatDate(new Date(endTimes[i]), "JST", "yyyy-MM-dd'T'HH:mm:ssZ");
+  for (var i = 0; i < updateEventInfos.length; i++) {
+    let event = Calendar.Events.get(strCalendarID, updateEventInfos[i].eventId);
+    event.summary = updateEventInfos[i].title;
+    let formattedStartDate = Utilities.formatDate(new Date(updateEventInfos[i].startTime), "JST", "yyyy-MM-dd'T'HH:mm:ssZ");
+    let formattedEndDate = Utilities.formatDate(new Date(updateEventInfos[i].endTime), "JST", "yyyy-MM-dd'T'HH:mm:ssZ");
     event.start.dateTime = formattedStartDate;
     event.end.dateTime = formattedEndDate;
-    Calendar.Events.patch(event, strCalendarID, eventIds[i]);
+    Calendar.Events.patch(event, strCalendarID, updateEventInfos[i].eventId);
   }
 }
 //イベント削除機能
@@ -117,9 +138,5 @@ function deleteEvent(eventIds) {
     event.deleteEvent();
   }
   Browser.msgBox("予定を" + i + "件削除しました。");
-}
-
-function test(){
-  Logger.log('test');
 }
 
