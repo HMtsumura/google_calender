@@ -33,10 +33,10 @@
                vueへの書き換え。どういう単位で分けるのが正解？tableのmainのところ書き方わからん。
                 レイアウトをレスポンシブにする。
                 単体テストのテストコード書きたい。htmlにあるscriptって動かせるの？クラスの定義をしてないからテストできない？
+                予実の管理
+                グラフ化
             -->
     <div id="table">
-        <button class="btn btn-primary btn-sm" type="button" v-on:click="updateEvents"><i
-                class="fas fa-sync-alt"></i></button>
         <table class="table table-responsive-sm table-hover">
             <tr class="table-primary" name="scheduleHeader" id="scheduleHeader">
                 <th v-for="headerItem in headerItems">{{headerItem}}</th>
@@ -53,6 +53,8 @@
                 <td><button class="btn btn-primary" v-on:click=deleteRow(index)><i class="fas fa-minus"></i></button></td>
             </tr>
         </table>
+        <button class="btn btn-primary btn-sm mx-auto d-block" type="button" v-on:click="updateEvents"><i
+                class="fas fa-sync-alt"></i></button>
     </div>
 </body>
 <script src="https://cdn.jsdelivr.net/npm/vue@2.5.17/dist/vue.js"></script>
