@@ -49,8 +49,8 @@
                 <td><input name="endTime" type="time" step="1800" v-model="item.endTime" v-bind:id="'endTime_'+index">
                 </td>
                 <td><input name="title" type="text" v-model="item.title" v-bind:id="'title_'+index"></td>
-                <td><button class="btn btn-primary" v-on:click=addRow(index)>追加</button></td>
-                <td><button class="btn btn-primary" v-on:click=deleteRow(index)>削除</button></td>
+                <td><button class="btn btn-primary" v-on:click=addRow(index)><i class="fas fa-plus"></i></button></td>
+                <td><button class="btn btn-primary" v-on:click=deleteRow(index)><i class="fas fa-minus"></i></button></td>
             </tr>
         </table>
     </div>
