@@ -11,52 +11,98 @@
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js" integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6" crossorigin="anonymous"></script>
 <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
 <style>
-    h2{color: blue}
+    h3{color: blue}
 </style>
 <body>
-    <h2>Scheduler</h2>
-    <table class="table table-bordered">
-           <tr name="scheduleHeader">
-               <th>日時</th> 
-               <th>開始時刻</th>
-               <th>終了時刻</th>
-               <th>予定</th>
+    <div class="row">
+      <h3 class="col-sm-4">Scheduler</h3>
+      <div class="col-xs-6 col-sm-4 col-md-3 btn-group btn-group-toggle" data-toggle="buttons">
+        <label class="btn btn-danger btn-sm active">
+          <input type="radio" name="options" id="plan" autocomplete="off" checked>予定
+        </label>
+        <label class="btn btn-danger btn-sm">
+          <input type="radio" name="options" id="result" autocomplete="off">実績
+        </label>
+      </div>
+    </div>
+    <!--
+    <div id="test">
+    <button type="button">test</button>
+    <schedule-main></schedule-main>
+    </div>
+    -->
+    <table class="table table-bordered" id="scheduleTable">
+           <tr name="scheduleHeader" id="scheduleHeader">
+               <th>{{date}}</th> 
+               <th>{{startTime}}</th>
+               <th>{{endTime}}</th>
+               <th>{{title}}</th>
            </tr>
-           <tr name="scheduleMain">
+           <tr name="scheduleMain" id="scheduleMain_0">
                <td><input name="date" type="date" max="2020-12-31" min="2018-01-01" value="2020-04-16" id="date_0"></td>
                <td><input name="startTime" type="time" step="1800" value="09:00" id="startTime_0"></td>
                <td><input name="endTime" type="time" step="1800" value="10:00" id="endTime_0"></td>
                <td><input name="content" type="text" id="content_0"></td>
-               </tr>
-           <tr name="scheduleMain">
+           </tr>
+           <tr name="scheduleMain" id="scheduleMain_1">
                <td><input name="date" type="date" max="2020-12-31" min="2018-01-01" value="2020-04-16" id="date_1"></td>           
                <td><input name="startTime" type="time" step="1800" value="10:00" id="startTime_1"></td>
                <td><input name="endTime" type="time" step="1800" value="11:00" id="endTime_1"></td>
                <td><input name="content" type="text" id="content_1"></td>
            </tr>
-           <tr name="scheduleMain">
+           <tr name="scheduleMain" id="scheduleMain_2">
                <td><input name="date" type="date" max="2020-12-31" min="2018-01-01" value="2020-04-16" id="date_2"></td>           
                <td><input name="startTime" type="time" step="1800" value="11:00" id="startTime_2"></td>
                <td><input name="endTime" type="time" step="1800" value="12:00" id="endTime_2"></td>
                <td><input name="content" type="text" id="content_2"></td>
            </tr>   
-    </table>
-
-    <p><button type="button" class="btn btn-primary btn-sm" onclick="addHtml()">追加</button>
+    </table> 
+    <!--
+    <a href="https://script.google.com/macros/s/AKfycbx73JzoUN_2qvX1Q5yq4pu39uf2bTsfp6oS1Lco4Ml5yPD7LOI/exec">メイン</a>
+    -->
+    <button type="button" class="btn btn-primary btn-sm" onclick="addHtml()">追加</button>
     <button type="button" class="btn btn-primary btn-sm" onclick="deleteHtml()">削除</button>
     <button type="submit" class="btn btn-primary btn-sm" onclick="sendGoogleAppsScript()">登録</button>
-    <a href="https://script.google.com/macros/s/AKfycbx73JzoUN_2qvX1Q5yq4pu39uf2bTsfp6oS1Lco4Ml5yPD7LOI/exec">メイン</a>
 </body>
+<script src="https://cdn.jsdelivr.net/npm/vue@2.5.17/dist/vue.js"></script>
+<script>  
+/*var app = new Vue({
+    el: '#app',
+    data: {
+      message: 'Hello GAS!'
+    },
+    methods: {
+      changeMessage: function() {
+        this.message = 'Hello JavaScript!';
+      }
+    }
+  });
+*/
+  var scheduleHeader = new Vue({
+    el: '#scheduleHeader',
+    data: {
+      date: '日時',
+      startTime: '開始時刻',
+      endTime: '終了時刻',
+      title: '予定'
+    }
+  });
+/*
+  Vue.component('schedule-main',{
+      template:'<div>aaaa</div>'
+  });
+  new Vue({el: '#test'});
+*/
+</script>
+
 <script type="text/javascript" >
     //TODO
     /*
-    　一つ前のendtimeをstartTimeにする
     　終日ボタンを入れる。
      24時間以降も
      別のhtmlに遷移するようにする。
-    　入力しているカレンダーのデータを取得する。
     　既に入力しているカレンダーの予定を更新・削除できるようにする。
-     
+     予定の途中の部分とかを消したり、途中に予定割り込ませたりできるようにする。
     */
 window.onload = function () {
     //今日の日時を表示
@@ -137,17 +183,29 @@ function sendGoogleAppsScript(){
     let endTimes   = [];
     let titles     = [];
     let scheduleLength = document.getElementsByName("scheduleMain");
-    for (let i = 0; i < scheduleLength.length; i++) {
-      let startTime = document.getElementById("date_" + i).value +' '+ document.getElementById("startTime_" + i).value;
-      let endTime   = document.getElementById("date_" + i).value + ' ' + document.getElementById("endTime_" + i).value;
-      let title     = document.getElementById("content_" + i).value;
+    let count = 0;
+    for (count; count < scheduleLength.length; count++) {
+      let startTime = document.getElementById("date_" + count).value +' '+ document.getElementById("startTime_" + count).value;
+      let endTime   = document.getElementById("date_" + count).value + ' ' + document.getElementById("endTime_" + count).value;
+      let title     = document.getElementById("content_" + count).value;
       startTimes.push(startTime);
       endTimes.push(endTime);
       titles.push(title);
     }
-    google.script.run.recieveFromHtml(startTimes,endTimes,titles);
-    alert("予定を"+i+"件登録しました。");
+    let planOrResult = isPlan();
+    google.script.run.recieveFromHtml(startTimes,endTimes,titles,planOrResult);
+    alert("予定を"+count+"件登録しました。");
+}
+
+function isPlan(){
+  let isPlan = document.getElementById("plan").checked;
+  return isPlan;
+  
+  
+}
+
+function array(){
+
 }
 </script>
-
 </html>
